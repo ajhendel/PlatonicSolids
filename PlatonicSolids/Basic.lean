@@ -3,15 +3,23 @@ Copyright (c) 2026 Andrew Hendel. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Andrew Hendel
 -/
+import Mathlib.NumberTheory.ADEInequality
 import Mathlib.Tactic
 
 /-!
-# Number of Platonic Solids
+# Number of Platonic Solids (Freek #50)
 
 We prove that there are exactly five Platonic solids, i.e., exactly five pairs
 (p, q) with p ≥ 3 and q ≥ 3 satisfying 1/p + 1/q > 1/2.
 
 This is entry #50 on Freek Wiedijk's list of 100 famous theorems.
+
+## Relationship to ADE inequality
+
+The Schläfli condition `1/p + 1/q > 1/2` is the `r = 2` specialization of the
+ADE inequality `1/p + 1/q + 1/r > 1`, classified in
+`Mathlib.NumberTheory.ADEInequality`. The proof here uses the same bounding
+technique (bound variables, exhaust cases).
 
 ## The combinatorial argument
 
@@ -25,6 +33,11 @@ double-counting relations pF = 2E = qV, yields the constraint
 * (4, 3) — cube
 * (3, 5) — icosahedron
 * (5, 3) — dodecahedron
+
+## References
+
+* <https://www.cs.ru.nl/~freek/100/> (entry #50)
+* `Mathlib.NumberTheory.ADEInequality` for the 3-variable generalization
 -/
 
 /-- A Schläfli pair (p, q) represents a candidate regular polyhedron where each
@@ -47,43 +60,24 @@ theorem all_platonic_pairs_valid :
   rcases hmem with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;>
     exact ⟨by omega, by omega, by omega⟩
 
-private lemma p_upper_bound {p q : ℕ} (_ : 3 ≤ p) (hq : 3 ≤ q)
-    (hineq : 2 * (p + q) > p * q) : p ≤ 5 := by
-  by_contra h
-  push Not at h
-  have h6 : 6 ≤ p := h
-  have h1 : 6 * q ≤ p * q := Nat.mul_le_mul h6 le_rfl
-  have h2 : p * 3 ≤ p * q := Nat.mul_le_mul le_rfl hq
-  omega
-
-private lemma q_upper_bound {p q : ℕ} (hp : 3 ≤ p) (_ : 3 ≤ q)
-    (hineq : 2 * (p + q) > p * q) : q ≤ 5 := by
-  by_contra h
-  push Not at h
-  have h6 : 6 ≤ q := h
-  have h1 : p * 6 ≤ p * q := Nat.mul_le_mul le_rfl h6
-  have h2 : 3 * q ≤ p * q := Nat.mul_le_mul hp le_rfl
-  omega
-
-/-- If (p, q) is a Platonic pair, then it is one of the five known pairs. -/
+/-- If (p, q) is a Platonic pair, then it is one of the five known pairs.
+The proof bounds p, q ≤ 5 (mirroring `ADEInequality.lt_three` etc.) then
+exhausts the finite cases. -/
 theorem platonic_pair_classification {p q : ℕ} (h : IsPlatonicPair p q) :
     (p, q) ∈ platonicPairs := by
   obtain ⟨hp, hq, hineq⟩ := h
-  have hp5 : p ≤ 5 := p_upper_bound hp hq hineq
-  have hq5 : q ≤ 5 := q_upper_bound hp hq hineq
+  have hp5 : p ≤ 5 := by nlinarith
+  have hq5 : q ≤ 5 := by nlinarith
   simp only [platonicPairs, List.mem_cons, List.mem_nil_iff, or_false, Prod.mk.injEq]
   interval_cases p <;> interval_cases q <;> omega
 
-/-- **Exactly five Platonic solids**: the set of pairs (p, q) with p ≥ 3, q ≥ 3,
-and 1/p + 1/q > 1/2 is exactly {(3,3), (3,4), (4,3), (3,5), (5,3)}. -/
+/-- **Exactly five Platonic solids** (Freek #50): the set of pairs (p, q) with
+p ≥ 3, q ≥ 3, and 1/p + 1/q > 1/2 is exactly
+{(3,3), (3,4), (4,3), (3,5), (5,3)}. -/
 theorem platonic_solids_classification (p q : ℕ) :
-    IsPlatonicPair p q ↔ (p, q) ∈ platonicPairs := by
-  constructor
-  · exact platonic_pair_classification
-  · intro hmem
-    exact all_platonic_pairs_valid (p, q) hmem
+    IsPlatonicPair p q ↔ (p, q) ∈ platonicPairs :=
+  ⟨platonic_pair_classification, fun h => all_platonic_pairs_valid _ h⟩
 
 /-- There are exactly five Platonic solids. -/
 theorem number_of_platonic_solids :
-    platonicPairs.length = 5 := by
-  rfl
+    platonicPairs.length = 5 := rfl
